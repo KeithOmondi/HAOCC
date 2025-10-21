@@ -11,11 +11,15 @@ import { upload } from "../middlewares/upload.js";
 
 const router = express.Router();
 
-// Public
+/* ================================
+   📰 Public Routes
+================================ */
 router.get("/get", getAllBlogs);
 router.get("/get/:id", getBlogById);
 
-// Admin routes
+/* ================================
+   🔐 Admin Routes
+================================ */
 router.post(
   "/create",
   isAuthenticated,
@@ -23,6 +27,7 @@ router.post(
   upload.single("image"),
   createBlog
 );
+
 router.put(
   "/update/:id",
   isAuthenticated,
@@ -30,6 +35,7 @@ router.put(
   upload.single("image"),
   updateBlog
 );
+
 router.delete(
   "/delete/:id",
   isAuthenticated,
