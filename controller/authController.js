@@ -2,10 +2,15 @@
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { User } from "../models/userModel.js";
+<<<<<<< HEAD
 // Removed: import Supplier from "../models/Supplier.js";
 import { sendToken } from "../utils/sendToken.js";
 import { sendEmail } from "../utils/sendMail.js";
 import { generateOTP } from "../utils/generateOTP.js";
+=======
+import { sendToken } from "../utils/sendToken.js";
+import { sendEmail } from "../utils/sendMail.js";
+>>>>>>> dafa0d2 (first commit)
 import {
   generateLoginAlertEmailTemplate,
   generatePasswordChangeEmailTemplate,
@@ -16,7 +21,11 @@ import jwt from "jsonwebtoken";
 import cloudinary from "cloudinary";
 
 /* =========================================================
+<<<<<<< HEAD
    Helper: Validate password strength
+=======
+   Helper: Validate password strength
+>>>>>>> dafa0d2 (first commit)
 ========================================================= */
 const validatePassword = (password) => {
   const isStrong = validator.isStrongPassword(password, {
@@ -26,7 +35,10 @@ const validatePassword = (password) => {
     minNumbers: 1,
     minSymbols: 1,
   });
+<<<<<<< HEAD
 
+=======
+>>>>>>> dafa0d2 (first commit)
   if (!isStrong) {
     throw new ErrorHandler(
       "Password must be at least 8 characters long and include uppercase, lowercase, number, and symbol.",
@@ -35,6 +47,7 @@ const validatePassword = (password) => {
   }
 };
 
+<<<<<<< HEAD
 
 /* =========================================================
    ✅ Register
@@ -42,11 +55,19 @@ const validatePassword = (password) => {
 export const register = catchAsyncErrors(async (req, res, next) => {
   const { name, email, password, role } = req.body;
 
+=======
+/* =========================================================
+   ✅ Register
+========================================================= */
+const register = catchAsyncErrors(async (req, res, next) => {
+  const { name, email, password, role } = req.body;
+>>>>>>> dafa0d2 (first commit)
   if (!name || !email || !password) {
     return next(new ErrorHandler("Please provide name, email, and password.", 400));
   }
 
   const existingUser = await User.findOne({ email });
+<<<<<<< HEAD
   if (existingUser) {
     return next(new ErrorHandler("User already exists.", 400));
   }
@@ -56,11 +77,18 @@ export const register = catchAsyncErrors(async (req, res, next) => {
   if (role && ["Admin", "Agent", "User"].includes(role)) {
     userRole = "User"; // Public can't self-assign elevated roles
   }
+=======
+  if (existingUser) return next(new ErrorHandler("User already exists.", 400));
+
+  let userRole = "User"; // public registration cannot assign elevated roles
+  if (role && ["Admin", "Agent", "User"].includes(role)) userRole = "User";
+>>>>>>> dafa0d2 (first commit)
 
   let avatarData = {};
   if (req.files?.avatar) {
     const { avatar } = req.files;
     const allowedFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+<<<<<<< HEAD
 
     if (!allowedFormats.includes(avatar.mimetype)) {
       return next(new ErrorHandler("Invalid image format. Must be JPEG, PNG, or WebP.", 400));
@@ -77,6 +105,15 @@ export const register = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Create user first without OTP fields
+=======
+    if (!allowedFormats.includes(avatar.mimetype)) {
+      return next(new ErrorHandler("Invalid image format. Must be JPEG, PNG, or WebP.", 400));
+    }
+    const uploadRes = await cloudinary.uploader.upload(avatar.tempFilePath, { folder: "avatars" });
+    avatarData = { publicId: uploadRes.public_id, url: uploadRes.secure_url };
+  }
+
+>>>>>>> dafa0d2 (first commit)
   const user = new User({
     name,
     email: email.toLowerCase().trim(),
@@ -86,6 +123,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     accountVerified: false,
   });
 
+<<<<<<< HEAD
   // Generate OTP using the schema method (it hashes it automatically)
   const otp = user.generateOtp();
   await user.save();
@@ -96,6 +134,15 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     subject: "Verify your account",
     html: `<p>Hello ${name},</p>
            <p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
+=======
+  const otp = user.generateOtp(); // model hashes OTP
+  await user.save();
+
+  await sendEmail({
+    email,
+    subject: "Verify your account",
+    html: `<p>Hello ${name},</p><p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
+>>>>>>> dafa0d2 (first commit)
   });
 
   res.status(201).json({
@@ -105,6 +152,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+<<<<<<< HEAD
 
 /* --------------------------------------------------------- */
 
@@ -125,6 +173,18 @@ export const verifyOTP = catchAsyncErrors(async (req, res, next) => {
   if (!isValid) {
     return next(new ErrorHandler("Invalid or expired OTP.", 400));
   }
+=======
+/* =========================================================
+   ✅ Verify OTP
+========================================================= */
+const verifyOTP = catchAsyncErrors(async (req, res, next) => {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email }).select("+verificationCode +verificationCodeExpiry");
+  if (!user) return next(new ErrorHandler("User not found.", 404));
+
+  const isValid = user.verifyOtp(otp);
+  if (!isValid) return next(new ErrorHandler("Invalid or expired OTP.", 400));
+>>>>>>> dafa0d2 (first commit)
 
   user.accountVerified = true;
   user.verificationCode = undefined;
@@ -137,6 +197,7 @@ export const verifyOTP = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+<<<<<<< HEAD
 
 
 /* --------------------------------------------------------- */
@@ -152,6 +213,18 @@ export const resendOTP = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Account already verified.", 400)); // Generate and store new OTP
 
   const otp = user.generateOtp(); // Using the model's method to generate and hash/store OTP
+=======
+/* =========================================================
+   ✅ Resend OTP
+========================================================= */
+const resendOTP = catchAsyncErrors(async (req, res, next) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return next(new ErrorHandler("User not found.", 404));
+  if (user.accountVerified) return next(new ErrorHandler("Account already verified.", 400));
+
+  const otp = user.generateOtp();
+>>>>>>> dafa0d2 (first commit)
   await user.save({ validateBeforeSave: false });
 
   await sendEmail({
@@ -159,6 +232,7 @@ export const resendOTP = catchAsyncErrors(async (req, res, next) => {
     subject: "Resend OTP",
     html: `<p>Hello ${user.name},</p><p>Your new OTP is <b>${otp}</b>. It expires in 15 minutes.</p>`,
   });
+<<<<<<< HEAD
   
   res.status(200).json({ success: true, message: "New OTP sent to email." });
 });
@@ -249,20 +323,89 @@ await sendEmail({
    ✅ Forgot Password
 ========================================================= */
 export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
+=======
+
+  res.status(200).json({ success: true, message: "New OTP sent to email." });
+});
+
+/* =========================================================
+   ✅ Login
+========================================================= */
+const login = catchAsyncErrors(async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) return next(new ErrorHandler("Email and password are required.", 400));
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+    "+password +loginAttempts +lockUntil +refreshToken"
+  );
+  if (!user) return next(new ErrorHandler("Invalid email or password.", 401));
+
+  if (user.isLocked) {
+    const unlockTimeMinutes = Math.ceil((user.lockUntil - Date.now()) / 60000);
+    return res.status(423).json({
+      success: false,
+      accountLocked: true,
+      message: `Account locked due to too many failed attempts. Try again in ${unlockTimeMinutes} minute(s).`,
+    });
+  }
+
+  const isValid = await user.comparePassword(password);
+  if (!isValid) {
+    await user.incrementLoginAttempts();
+    const attemptsLeft = Math.max(5 - (user.loginAttempts || 0), 0);
+    return res.status(401).json({
+      success: false,
+      attemptsLeft,
+      message: `Invalid email or password. ${attemptsLeft} attempt(s) remaining before lockout.`,
+    });
+  }
+
+  if (!user.accountVerified) return next(new ErrorHandler("Account not verified. Please verify your email with OTP.", 403));
+
+  await user.resetLoginAttempts();
+
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.connection.remoteAddress || req.ip || "Unknown IP";
+  const userAgent = req.headers["user-agent"] || "Unknown device";
+  const time = new Date().toLocaleString();
+
+  user.lastLogin = Date.now();
+  user.loginHistory = [...(user.loginHistory || []), { ip, userAgent, time }].slice(-10);
+  await user.save({ validateBeforeSave: false });
+
+  await sendEmail({
+    email: user.email,
+    subject: "Security Alert: New Login Detected",
+    html: generateLoginAlertEmailTemplate(user.name, ip, userAgent, time),
+  });
+
+  await sendToken(user, 200, "Login successful.", res);
+});
+
+/* =========================================================
+   ✅ Forgot Password
+========================================================= */
+const forgotPassword = catchAsyncErrors(async (req, res, next) => {
+>>>>>>> dafa0d2 (first commit)
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (!user) return next(new ErrorHandler("User not found.", 404));
 
   const resetToken = crypto.randomBytes(32).toString("hex");
+<<<<<<< HEAD
   user.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
   user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins expiry
+=======
+  user.resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+>>>>>>> dafa0d2 (first commit)
   await user.save({ validateBeforeSave: false });
 
   const resetUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`;
   await sendEmail({
+<<<<<<< HEAD
     to: user.email,
     subject: "Password Reset Request",
     html: `<p>Hello ${user.name},</p><p>Click the link below to reset your password. This link expires in 15 minutes:</p><a href="${resetUrl}">${resetUrl}</a>`,
@@ -292,19 +435,48 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     return next(
       new ErrorHandler("Password reset token is invalid or expired.", 400)
     ); // Validate and set new password
+=======
+    email: user.email,
+    subject: "Password Reset Request",
+    html: `<p>Hello ${user.name},</p><p>Click the link below to reset your password. Expires in 15 minutes:</p><a href="${resetUrl}">${resetUrl}</a>`,
+  });
+
+  res.status(200).json({ success: true, message: "Password reset link sent to email." });
+});
+
+/* =========================================================
+   ✅ Reset Password
+========================================================= */
+const resetPassword = catchAsyncErrors(async (req, res, next) => {
+  const tokenHash = crypto.createHash("sha256").update(req.params.token).digest("hex");
+  const user = await User.findOne({
+    resetPasswordToken: tokenHash,
+    resetPasswordExpire: { $gt: Date.now() },
+  }).select("+password");
+
+  if (!user) return next(new ErrorHandler("Password reset token is invalid or expired.", 400));
+>>>>>>> dafa0d2 (first commit)
 
   validatePassword(req.body.password);
   user.password = req.body.password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
+<<<<<<< HEAD
   await user.save(); // Pre-save hook hashes the new password // Send alert
 
   await sendEmail({
     to: user.email, // changed from 'email' to 'to' to match sendEmail standard
+=======
+  await user.save();
+
+  await sendEmail({
+    email: user.email,
+>>>>>>> dafa0d2 (first commit)
     subject: "Password Change Alert",
     html: generatePasswordChangeEmailTemplate(user.name),
   });
 
+<<<<<<< HEAD
   res
     .status(200)
     .json({ success: true, message: "Password reset successful." });
@@ -317,10 +489,20 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 ========================================================= */
 export const updatePassword = catchAsyncErrors(async (req, res, next) => {
   // req.user.id is set by the auth middleware
+=======
+  res.status(200).json({ success: true, message: "Password reset successful." });
+});
+
+/* =========================================================
+   ✅ Update Password (logged-in)
+========================================================= */
+const updatePassword = catchAsyncErrors(async (req, res, next) => {
+>>>>>>> dafa0d2 (first commit)
   const user = await User.findById(req.user.id).select("+password");
   if (!user) return next(new ErrorHandler("User not found.", 404));
 
   const { oldPassword, newPassword } = req.body;
+<<<<<<< HEAD
   if (!oldPassword || !newPassword)
     return next(new ErrorHandler("Provide old and new passwords.", 400));
 
@@ -334,10 +516,24 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
   await sendEmail({
     to: user.email, // changed from 'email' to 'to'
+=======
+  if (!oldPassword || !newPassword) return next(new ErrorHandler("Provide old and new passwords.", 400));
+
+  const isMatched = await user.comparePassword(oldPassword);
+  if (!isMatched) return next(new ErrorHandler("Old password is incorrect.", 400));
+
+  validatePassword(newPassword);
+  user.password = newPassword;
+  await user.save();
+
+  await sendEmail({
+    email: user.email,
+>>>>>>> dafa0d2 (first commit)
     subject: "Password Change Alert",
     html: generatePasswordChangeEmailTemplate(user.name),
   });
 
+<<<<<<< HEAD
   res
     .status(200)
     .json({ success: true, message: "Password updated successfully." });
@@ -352,11 +548,22 @@ export const logout = catchAsyncErrors(async (req, res) => {
   // Clear refresh token from database if user is logged in
   if (req.user) {
     // Select the refresh token field to clear it
+=======
+  res.status(200).json({ success: true, message: "Password updated successfully." });
+});
+
+/* =========================================================
+   ✅ Logout
+========================================================= */
+const logout = catchAsyncErrors(async (req, res) => {
+  if (req.user) {
+>>>>>>> dafa0d2 (first commit)
     const user = await User.findById(req.user._id).select("+refreshToken");
     if (user) {
       user.refreshToken = undefined;
       await user.save({ validateBeforeSave: false });
     }
+<<<<<<< HEAD
   } // Clear the refresh token cookie
 
   res
@@ -411,6 +618,39 @@ export const refreshToken = catchAsyncErrors(async (req, res, next) => {
     const user = await User.findOne({ refreshToken: token }).select(
       "+refreshToken"
     );
+=======
+  }
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  }).status(200).json({ success: true, message: "Logged out successfully." });
+});
+
+/* =========================================================
+   ✅ Get Current User
+========================================================= */
+const getUser = catchAsyncErrors(async (req, res) => {
+  res.status(200).json({ success: true, user: req.user });
+});
+
+/* =========================================================
+   ✅ Refresh Token
+========================================================= */
+const refreshToken = catchAsyncErrors(async (req, res, next) => {
+  const token = req.cookies.refreshToken;
+  if (!token) return next(new ErrorHandler("Refresh token required.", 401));
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id).select("+refreshToken");
+    if (!user) return next(new ErrorHandler("Invalid refresh token (User not found).", 401));
+    if (!user.verifyRefreshToken(token)) return next(new ErrorHandler("Refresh token mismatch or revoked.", 401));
+    await sendToken(user, 200, "Access token refreshed.", res);
+  } catch (err) {
+    const user = await User.findOne({ refreshToken: token }).select("+refreshToken");
+>>>>>>> dafa0d2 (first commit)
     if (user) {
       user.refreshToken = undefined;
       await user.save({ validateBeforeSave: false });
@@ -419,16 +659,24 @@ export const refreshToken = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
+<<<<<<< HEAD
 /* --------------------------------------------------------- */
 
 /* =========================================================
    ✅ Update Profile (logged in)
 ========================================================= */
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
+=======
+/* =========================================================
+   ✅ Update Profile (logged-in)
+========================================================= */
+const updateProfile = catchAsyncErrors(async (req, res, next) => {
+>>>>>>> dafa0d2 (first commit)
   const user = await User.findById(req.user.id);
   if (!user) return next(new ErrorHandler("User not found", 404));
 
   const { name, email } = req.body;
+<<<<<<< HEAD
   const updates = {}; // 1. Validate inputs
 
   if (name && name.trim().length < 2) {
@@ -451,10 +699,22 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
       if (emailExists) {
         return next(new ErrorHandler("This email is already registered.", 400));
       }
+=======
+  const updates = {};
+
+  if (name && name.trim().length < 2) return next(new ErrorHandler("Name must be at least 2 characters long", 400));
+
+  if (email) {
+    if (!validator.isEmail(email)) return next(new ErrorHandler("Please provide a valid email address", 400));
+    if (email.toLowerCase().trim() !== user.email) {
+      const emailExists = await User.findOne({ email: email.toLowerCase().trim() });
+      if (emailExists) return next(new ErrorHandler("This email is already registered.", 400));
+>>>>>>> dafa0d2 (first commit)
     }
   }
 
   if (name) updates.name = name.trim();
+<<<<<<< HEAD
   if (email)
     updates.email = email.trim().toLowerCase(); /* -------------------------
      ✅ Handle Avatar Upload
@@ -510,3 +770,44 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     user,
   });
 });
+=======
+  if (email) updates.email = email.trim().toLowerCase();
+
+  // Handle avatar
+  if (req.files?.avatar) {
+    const { avatar } = req.files;
+    const allowedFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedFormats.includes(avatar.mimetype)) return next(new ErrorHandler("Invalid image format.", 400));
+    if (user.avatar?.publicId) await cloudinary.uploader.destroy(user.avatar.publicId);
+    const uploadRes = await cloudinary.uploader.upload(avatar.tempFilePath, { folder: "avatars" });
+    updates.avatar = { publicId: uploadRes.public_id, url: uploadRes.secure_url };
+  }
+
+  if (req.body.removeAvatar === "true" || req.body.removeAvatar === true) {
+    if (user.avatar?.publicId) await cloudinary.uploader.destroy(user.avatar.publicId);
+    updates.avatar = { url: "", publicId: "" };
+  }
+
+  Object.assign(user, updates);
+  await user.save({ validateBeforeSave: true });
+
+  res.status(200).json({ success: true, message: "Profile updated successfully.", user });
+});
+
+/* =========================================================
+   ✅ Exports
+========================================================= */
+export {
+  register,
+  verifyOTP,
+  resendOTP,
+  login,
+  forgotPassword,
+  resetPassword,
+  updatePassword,
+  logout,
+  getUser,
+  refreshToken,
+  updateProfile,
+};
+>>>>>>> dafa0d2 (first commit)
