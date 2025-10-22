@@ -6,32 +6,36 @@ export const sendEmail = async ({ email, subject, message, html }) => {
   }
 
   try {
+    const port = Number(process.env.SMTP_PORT) || 587;
+    const secure = port === 465; // only true for 465 (SSL)
+
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465, // true for port 465
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port,
+      secure,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false, // Optional: helpful in dev, but should be `true` in prod if using proper certs
+        rejectUnauthorized: true, // ✅ safer for production
       },
+      connectionTimeout: 10000, // 10s timeout to avoid indefinite waits
     });
 
     const mailOptions = {
       from: `"HaoChapChap" <${process.env.SMTP_USER}>`,
       to: email,
       subject,
-      text: message || "", // fallback plain text
-      html: html || "",    // HTML content
+      text: message || "",
+      html: html || "",
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.response);
+    console.log("✅ Email sent successfully:", info.response);
     return info;
   } catch (error) {
-    console.error("❌ Email sending error:", error.message);
-    throw new Error("Failed to send email. Please try again.");
+    console.error("❌ Email sending error:", error);
+    throw new Error("Failed to send email. Please try again later.");
   }
 };
