@@ -1,8 +1,8 @@
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
-import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { User } from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
+import ErrorHandler from "../utils/ErrorHandler.js";
 
 // ✅ Get All Verified Users
 export const getAllUsers = catchAsyncErrors(async (req, res, next) => {

@@ -14,8 +14,9 @@ import {
   // future: getLoginHistory, forceChangePassword
 } from "../controller/authController.js";
 
-import { isAuthenticated } from "../middlewares/authMiddleware.js";
+import { isAuthenticated, isAuthorized } from "../middlewares/authMiddleware.js";
 import { registerValidation, validateRequest } from "../middlewares/authValidator.js";
+import { registerNewAdmin } from "../controller/userController.js";
 
 const router = express.Router();
 
@@ -43,7 +44,10 @@ router.put("/password/update", isAuthenticated, updatePassword);
 // OTP
 router.post("/otp/resend", resendOTP);
 
-router.put("/profile/update", isAuthenticated, updateProfile);
+router.put("/user/profile", isAuthenticated, updateProfile);
+
+router.post("/admin/register", isAuthenticated, isAuthorized("Admin"), registerNewAdmin);
+
 
 // 🔐 Future security routes (not wired yet)
 // router.get("/logins", isAuthenticated, getLoginHistory);

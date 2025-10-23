@@ -1,6 +1,5 @@
 // controllers/authController.js
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
-import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { User } from "../models/userModel.js";
 import { sendToken } from "../utils/sendToken.js";
 import { sendEmail } from "../utils/sendMail.js";
@@ -12,6 +11,7 @@ import validator from "validator";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import cloudinary from "cloudinary";
+import ErrorHandler from "../utils/ErrorHandler.js";
 
 /* =========================================================
    🔒 Helper: Validate Password Strength

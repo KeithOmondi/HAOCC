@@ -1,11 +1,11 @@
 // src/controller/PropertyController.js
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
-import ErrorHandler from "../middlewares/errorMiddlewares.js"; // Note: Changed to common ErrorHandler usage
 import Property from "../models/Property.js";
 import Category from "../models/Category.js";
 import { uploadToCloudinary, cloudinaryDelete } from "../utils/cloudinaryUpload.js";
 import shortid from "shortid";
 import cloudinary from "../utils/cloudinary.js";
+import ErrorHandler from "../utils/ErrorHandler.js";
 
 /* ============================================================
    🏡 CREATE PROPERTY
