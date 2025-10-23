@@ -125,17 +125,19 @@ export const resendOTP = catchAsyncErrors(async (req, res, next) => {
 });
 
 /* =========================================================
-   ✅ Login
+   ✅ Login (Production-safe Email)
 ========================================================= */
 export const login = catchAsyncErrors(async (req, res, next) => {
   const { email, password } = req.body;
-  if (!email || !password) return next(new ErrorHandler("Email and password are required.", 400));
+  if (!email || !password)
+    return next(new ErrorHandler("Email and password are required.", 400));
 
   const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
     "+password +loginAttempts +lockUntil +refreshToken"
   );
   if (!user) return next(new ErrorHandler("Invalid email or password.", 401));
 
+  // Check account lock
   if (user.isLocked) {
     const unlockTimeMinutes = Math.ceil((user.lockUntil - Date.now()) / 60000);
     return res.status(423).json({
@@ -145,6 +147,7 @@ export const login = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
+  // Validate password
   const isValid = await user.comparePassword(password);
   if (!isValid) {
     await user.incrementLoginAttempts();
@@ -161,6 +164,7 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   await user.resetLoginAttempts();
 
+  // Log login info
   const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.connection.remoteAddress || req.ip || "Unknown IP";
   const userAgent = req.headers["user-agent"] || "Unknown device";
   const time = new Date().toLocaleString();
@@ -169,14 +173,23 @@ export const login = catchAsyncErrors(async (req, res, next) => {
   user.loginHistory = [...(user.loginHistory || []), { ip, userAgent, time }].slice(-10);
   await user.save({ validateBeforeSave: false });
 
-  await sendEmail({
-    email: user.email,
-    subject: "Security Alert: New Login Detected",
-    html: generateLoginAlertEmailTemplate(user.name, ip, userAgent, time),
-  });
+  // Send email safely
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Security Alert: New Login Detected",
+      html: generateLoginAlertEmailTemplate(user.name, ip, userAgent, time),
+    });
+    console.log(`[Email] Security alert sent to ${user.email}`);
+  } catch (emailErr) {
+    console.warn(`[Email Warning] Failed to send login alert to ${user.email}:`, emailErr.message);
+    // Do NOT throw—login should succeed even if email fails
+  }
 
+  // Send token and response
   await sendToken(user, 200, "Login successful.", res);
 });
+
 
 /* =========================================================
    ✅ Forgot Password

@@ -1,41 +1,53 @@
+// utils/sendEmail.js
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
-export const sendEmail = async ({ email, subject, message, html }) => {
-  if (!email || !subject || (!message && !html)) {
-    throw new Error("Email, subject, and either message or HTML content are required.");
+dotenv.config();
+
+export const sendEmail = async ({ email, subject, text, html }) => {
+  if (!email || !subject || (!text && !html)) {
+    throw new Error("Email, subject, and either text or HTML content are required.");
   }
 
-  try {
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const secure = port === 465; // only true for 465 (SSL)
+  // Ensure environment variables are set
+  const { SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_USER || !SMTP_PASS) {
+    throw new Error("SMTP_USER or SMTP_PASS not set in environment.");
+  }
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port,
-      secure,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true, // ✅ safer for production
-      },
-      connectionTimeout: 10000, // 10s timeout to avoid indefinite waits
-    });
+  // Choose secure/port automatically
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465, // default SSL port
+    secure: true, // true for port 465
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: true, // safer for production
+    },
+    connectionTimeout: 10000, // 10s timeout
+  });
+
+  try {
+    // Verify connection before sending
+    await transporter.verify();
+    console.log("✅ SMTP connection successful");
 
     const mailOptions = {
-      from: `"HaoChapChap" <${process.env.SMTP_USER}>`,
+      from: `"HaoChapChap" <${SMTP_USER}>`,
       to: email,
       subject,
-      text: message || "",
+      text: text || "",
       html: html || "",
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully:", info.response);
+    console.log("✅ Email sent:", info.response);
     return info;
-  } catch (error) {
-    console.error("❌ Email sending error:", error);
+  } catch (err) {
+    console.error("❌ SMTP/email sending error:", err);
     throw new Error("Failed to send email. Please try again later.");
   }
 };
